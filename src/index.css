@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans antialiased;
+  }
+
+  /* Custom scrollbar for WebKit browsers */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 9999px;
+  }
+}
+
+@layer components {
+  /* Make all inputs more compact */
+  input, textarea, select {
+    @apply py-1 text-sm;
+  }
+
+  /* Node card styles */
+  .node-card {
+    @apply overflow-hidden transition duration-200;
+  }
+
+  /* Compact form controls */
+  .compact-form label {
+    @apply mb-0.5 text-xs;
+  }
+
+  .compact-form input,
+  .compact-form textarea,
+  .compact-form select {
+    @apply py-0.5 text-xs;
+  }
+
+  /* Platform grid */
+  .platform-grid {
+    @apply grid-cols-4 gap-1.5 md:grid-cols-8;
+  }
+}
+
+@layer utilities {
+  /* Common button styles */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md border border-transparent px-2 py-1 text-xs font-medium transition;
+  }
+
+  .btn-primary {
+    @apply bg-indigo-600 text-white hover:bg-indigo-700;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+  }
+
+  /* Custom utility for gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent;
+  }
+}
