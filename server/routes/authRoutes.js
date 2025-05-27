@@ -1,23 +1,29 @@
 const express = require('express');
-const authController = require('../controllers/authController');
-const { authenticateToken } = require('../lib/jwt');
+const youtubeController = require('../controllers/youtubeController');
+const tiktokController = require('../controllers/tiktokController');
+const facebookController = require('../controllers/facebookController');
+const twitterController = require('../controllers/twitterController');
 
 const router = express.Router();
 
-router.get('/google', authController.initiateGoogleAuth);
-router.get('/google/callback', authController.googleCallback);
-router.post('/google/logout', authController.googleLogout);
+// Google/YouTube auth routes
+router.get('/google', youtubeController.initiateAuth);
+router.get('/google/callback', youtubeController.authCallback);
+router.post('/google/logout', youtubeController.logout);
 
-router.get('/tiktok', authController.initiateTikTokAuth);
-router.get('/tiktok/callback', authController.tikTokCallback);
-router.post('/tiktok/logout', authController.tiktokLogout);
+// TikTok auth routes
+router.get('/tiktok', tiktokController.initiateAuth);
+router.get('/tiktok/callback', tiktokController.authCallback);
+router.post('/tiktok/logout', tiktokController.logout);
 
-router.get('/facebook', authenticateToken, authController.initiateFacebookAuth);
-router.get('/facebook/callback', authController.facebookCallback);
-router.post('/facebook/logout', authenticateToken, authController.facebookLogout);
+// Facebook auth routes
+router.get('/facebook', facebookController.initiateAuth);
+router.get('/facebook/callback', facebookController.authCallback);
+router.post('/facebook/logout', facebookController.logout);
 
-router.get('/twitter', authController.initiateTwitterAuth);
-router.get('/twitter/callback', authController.twitterCallback);
-router.post('/twitter/logout', authController.twitterLogout);
+// Twitter auth routes
+router.get('/twitter', twitterController.initiateAuth);
+router.get('/twitter/callback', twitterController.authCallback);
+router.post('/twitter/logout', twitterController.logout);
 
 module.exports = router;
