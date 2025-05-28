@@ -35,14 +35,6 @@ const tokenSchema = new mongoose.Schema({
     sparse: true,
   },
   
-  platformUserName: {
-    type: String,
-  },
-  
-  platformUserData: {
-    type: Object,
-  },
-  
   createdAt: {
     type: Date,
     default: Date.now,

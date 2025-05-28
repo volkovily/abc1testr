@@ -3,12 +3,11 @@ const stream = require('stream');
 const axios = require('axios');
 const { URLSearchParams } = require('url');
 const BaseController = require('./baseController');
-const googleAuthService = require('../services/googleAuthService');
-
+const youtubeAuthService = require('../services/youtubeAuthService');
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = process.env.BACKEND_REDIRECT_URI;
+const YOUTUBE_REDIRECT_URI = process.env.YOUTUBE_BACKEND_REDIRECT_URI;
 
 const YOUTUBE_API = {
   AUTH: (params) => `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
@@ -18,11 +17,11 @@ const YOUTUBE_API = {
 
 class YouTubeController extends BaseController {
   constructor() {
-    super(googleAuthService);
+    super(youtubeAuthService);
   }
 
   initiateAuth = async (req, res) => {
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI) {
+    if (!GOOGLE_CLIENT_ID || !YOUTUBE_REDIRECT_URI) {
       return res.status(500).json({ error: 'Google credentials or redirect URI not configured on backend.' });
     }
     const userId = req.user.userId;
@@ -31,7 +30,7 @@ class YouTubeController extends BaseController {
     }
 
     const state = this.createStateParameter(userId);
-    console.log(`Initiating Google Auth for user ${userId} with state: ${state}`);
+    console.log(`Initiating YouTube Auth for user ${userId} with state: ${state}`);
 
     const scopes = [
       'https://www.googleapis.com/auth/youtube.upload',
@@ -40,7 +39,7 @@ class YouTubeController extends BaseController {
     ];
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
-      redirect_uri: GOOGLE_REDIRECT_URI,
+      redirect_uri: YOUTUBE_REDIRECT_URI,
       response_type: 'code',
       scope: scopes.join(' '),
       access_type: 'offline',
@@ -58,28 +57,28 @@ class YouTubeController extends BaseController {
     if (state) {
       const result = this.extractUserIdFromState(state);
       if (result.error) {
-        console.error(`Google OAuth Error: ${result.error}`);
+        console.error(`YouTube OAuth Error: ${result.error}`);
         return this.sendPopupResponse(res, 'YT_AUTH_ERROR', { error: result.error });
       }
       userId = result.userId;
-      console.log(`Google Callback: Extracted userId ${userId} from state`);
+      console.log(`YouTube Callback: Extracted userId ${userId} from state`);
     } else {
-      console.error('Google OAuth Error: State parameter missing.');
+      console.error('YouTube OAuth Error: State parameter missing.');
       return this.sendPopupResponse(res, 'YT_AUTH_ERROR', { error: 'State parameter missing' });
     }
 
     if (error) {
-      console.error('Google OAuth Error:', error);
+      console.error('YouTube OAuth Error:', error);
       return this.sendPopupResponse(res, 'YT_AUTH_ERROR', { error });
     }
 
     if (!code) {
-      console.error('Authorization code missing from Google callback.');
+      console.error('Authorization code missing from YouTube callback.');
       return this.sendPopupResponse(res, 'YT_AUTH_ERROR', { error: 'Authorization code missing' });
     }
 
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !YOUTUBE_REDIRECT_URI) {
       console.error('Google credentials or redirect URI not configured on backend.');
       return this.sendPopupResponse(res, 'YT_AUTH_ERROR', { error: 'Backend configuration error' });
     }
@@ -89,7 +88,7 @@ class YouTubeController extends BaseController {
         code: code,
         client_id: GOOGLE_CLIENT_ID,
         client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: GOOGLE_REDIRECT_URI,
+        redirect_uri: YOUTUBE_REDIRECT_URI,
         grant_type: 'authorization_code'
       }));
 
@@ -109,7 +108,7 @@ class YouTubeController extends BaseController {
       this.sendPopupResponse(res, 'YT_AUTH_SUCCESS', { platform: 'YouTube' });
 
     } catch (err) {
-      console.error(`Error exchanging Google code for tokens for user ${userId}:`, err.response ? err.response.data : err.message);
+      console.error(`Error exchanging YouTube code for tokens for user ${userId}:`, err.response ? err.response.data : err.message);
       this.sendPopupResponse(res, 'YT_AUTH_ERROR', { error: 'Token exchange failed' });
     }
   };

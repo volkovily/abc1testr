@@ -6,10 +6,10 @@ const twitterController = require('../controllers/twitterController');
 
 const router = express.Router();
 
-// Google/YouTube auth routes
-router.get('/google', youtubeController.initiateAuth);
-router.get('/google/callback', youtubeController.authCallback);
-router.post('/google/logout', youtubeController.logout);
+// YouTube auth routes
+router.get('/youtube', youtubeController.initiateAuth);
+router.get('/youtube/callback', youtubeController.authCallback);
+router.post('/youtube/logout', youtubeController.logout);
 
 // TikTok auth routes
 router.get('/tiktok', tiktokController.initiateAuth);

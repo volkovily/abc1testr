@@ -4,9 +4,9 @@ const BaseService = require('./baseService');
 const PLATFORM = 'youtube';
 const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const redirectUri = process.env.BACKEND_REDIRECT_URI;
+const redirectUri = process.env.YOUTUBE_BACKEND_REDIRECT_URI;
 
-class GoogleAuthService extends BaseService {
+class YoutubeAuthService extends BaseService {
   constructor() {
     super(PLATFORM, { clientId, clientSecret, redirectUri });
     this.oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
@@ -84,5 +84,5 @@ class GoogleAuthService extends BaseService {
 }
 
 // Create and export a singleton instance
-const googleAuthService = new GoogleAuthService();
-module.exports = googleAuthService;
+const youtubeAuthService = new YoutubeAuthService();
+module.exports = youtubeAuthService;

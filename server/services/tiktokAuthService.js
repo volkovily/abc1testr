@@ -6,7 +6,7 @@ const PLATFORM = 'tiktok';
 const clientId = process.env.TIKTOK_CLIENT_ID;
 const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
 const redirectUri = process.env.TIKTOK_BACKEND_REDIRECT_URI;
-const tokenEndpoint = process.env.VITE_TIKTOK_TOKEN_ENDPOINT || 'https://open.tiktokapis.com/v2/oauth/token/';
+const tokenEndpoint = 'https://open.tiktokapis.com/v2/oauth/token/';
 
 class TikTokAuthService extends BaseService {
   constructor() {
