@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePlatformAuth } from './usePlatformAuth';
 import { FacebookUserProfile } from '../types';
+import { getFacebookPages } from '../services/facebookApiService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -25,18 +26,15 @@ export function useFacebookAuth() {
     const token = localStorage.getItem('accessToken');
     console.debug('[FacebookAuth] fetchPages called. accessToken:', token);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/facebook/pages`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      console.debug('[FacebookAuth] fetchPages response status:', res.status);
-      if (!res.ok) {
-        const errText = await res.text();
-        console.error('[FacebookAuth] fetchPages error response:', errText);
-        throw new Error(`Pages fetch failed: ${res.status}`);
+      const result = await getFacebookPages(token || undefined);
+      
+      if ('error' in result) {
+        console.error('[FacebookAuth] fetchPages error:', result.error);
+        throw new Error(result.error);
       }
-      const data = await res.json();
-      console.debug('[FacebookAuth] fetchPages data:', data);
-      setPages(data.pages);
+      
+      console.debug('[FacebookAuth] fetchPages data:', result);
+      setPages(result);
     } catch (err) {
       console.error('[FacebookAuth] fetchPages exception:', err);
       setPages([]);

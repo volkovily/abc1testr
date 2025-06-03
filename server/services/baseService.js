@@ -61,13 +61,7 @@ class BaseService {
       return { accessToken: null, refreshToken: null, expiryTime: null, platformUserId: null };
     }
   }
-
-  async checkTokenStatus(userId) {
-    const tokens = await this.getStoredTokens(userId);
-    const isAuthenticated = !!tokens.accessToken && (!tokens.expiryTime || tokens.expiryTime > Date.now());
-    return { isAuthenticated, platformUserId: tokens.platformUserId };
-  }
-
+  
   async clearTokens(userId) {
     if (!userId) {
       return;

@@ -68,10 +68,45 @@ class TwitterAuthService extends BaseService {
   }
 
   async refreshAccessToken(userId) {
-    // Twitter refresh token implementation would go here
-    // For now, just throw an error to indicate re-authentication is needed
-    await this.clearTokens(userId);
-    throw new Error('Twitter token expired. Please re-authenticate.');
+    const tokens = await this.getStoredTokens(userId);
+    if (!tokens.refreshToken) {
+      throw new Error('No refresh token available for Twitter');
+    }
+
+    const params = new URLSearchParams();
+    params.append('refresh_token', tokens.refreshToken);
+    params.append('grant_type', 'refresh_token');
+    params.append('client_id', this.config.clientId);
+
+    // Create Basic Authentication header with client_id:client_secret
+    const basicAuth = Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString('base64');
+
+    try {
+      const response = await axios.post(
+        'https://api.twitter.com/2/oauth2/token',
+        params,
+        { 
+          headers: { 
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${basicAuth}`
+          }
+        }
+      );
+
+      const { access_token, refresh_token, expires_in } = response.data;
+
+      await this.storeTokens(userId, {
+        accessToken: access_token,
+        refreshToken: refresh_token || tokens.refreshToken,
+        expiryTime: Date.now() + expires_in * 1000
+      });
+
+      return access_token;
+    } catch (error) {
+      console.error('Failed to refresh access token:', error.response?.data || error.message);
+      await this.clearTokens(userId);
+      throw new Error('Twitter token expired or invalid. Please re-authenticate.');
+    }
   }
 
   async getUserInfo(userId) {

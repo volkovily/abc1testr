@@ -18,17 +18,14 @@ import TikTokSettings from './settings/TikTokSettings';
 import FacebookSettings from './settings/FacebookSettings';
 import TwitterSettings from './settings/TwitterSettings';
 
-// Define the shape of the combined settings state using UploadSettings
 type AllPlatformSettings = Record<string, UploadSettings>;
 
-// Props expected by the component
 interface VideoSettingsProps {
   selectedPlatforms: SelectedPlatform[];
   isActive: boolean;
   onBack?: () => void;
 }
 
-// Moved defaults outside the component and exported
 export const DEFAULT_COMMON_SETTING: UploadSettings = {
   title: '',
   description: '',
@@ -42,7 +39,6 @@ export const DEFAULT_FACEBOOK_SETTING: UploadSettings = {
     selectedPageId: ''
 };
 
-// Main Component
 const VideoSettings: React.FC<VideoSettingsProps> = ({ 
   selectedPlatforms,
   isActive, 
@@ -53,14 +49,12 @@ const VideoSettings: React.FC<VideoSettingsProps> = ({
   const [activePlatform, setActivePlatform] = useState<string | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
 
-  // --- Instantiate Uploader Hook ---
   const {
     uploadSinglePlatform,
     platformResults, 
     resetPlatformStatus,
   } = useVideoUploader();
 
-  // Generic setting change handler - now uses UploadSettings
   const handleSettingChange = useCallback((platformId: string, key: keyof UploadSettings, value: any) => {
     setPlatformSettings(prev => ({
       ...prev,
@@ -71,11 +65,9 @@ const VideoSettings: React.FC<VideoSettingsProps> = ({
     }));
   }, []);
 
-  // --- Effects --- 
   useEffect(() => {
     const newSettings: AllPlatformSettings = {};
     selectedPlatforms.forEach(platform => {
-      // Initialize with default settings if not already present
       if (!platformSettings[platform.id]) {
          if (platform.id === 'facebook') {
              newSettings[platform.id] = { ...DEFAULT_FACEBOOK_SETTING };
@@ -83,16 +75,13 @@ const VideoSettings: React.FC<VideoSettingsProps> = ({
              newSettings[platform.id] = { ...DEFAULT_COMMON_SETTING };
          }
       } else {
-         // Preserve existing settings
          newSettings[platform.id] = platformSettings[platform.id];
       }
     });
-    // Only update if new settings were added
     if (Object.keys(newSettings).some(id => !platformSettings[id])) {
       setPlatformSettings(prev => ({ ...prev, ...newSettings }));
     }
     
-    // Set the active platform to the first one if not already set or if the current one is no longer selected
     if (!activePlatform || !selectedPlatforms.some(p => p.id === activePlatform)) {
       setActivePlatform(selectedPlatforms[0]?.id || null);
     }

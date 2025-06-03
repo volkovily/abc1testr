@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
-// Define user type
 export interface User {
   id: string;
   name: string;
@@ -10,7 +10,6 @@ export interface User {
   role: string;
 }
 
-// Define context type
 interface UserAuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -19,21 +18,18 @@ interface UserAuthContextType {
   logout: () => void;
 }
 
-// Create context with default values
 const UserAuthContext = createContext<UserAuthContextType>({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-    login: () => {},
-    logout: () => {},
+  login: () => {},
+  logout: () => {},
 });
 
-// Create provider component
 export const UserAuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is authenticated on component mount
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('accessToken');
@@ -44,22 +40,17 @@ export const UserAuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/profile`, {
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/users/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        } else {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          toast.error('Your session has expired. Please sign in again.');
-        }
-      } catch {
-        toast.error('Authentication check failed. Please try again.');
+        setUser(response.data.user);
+      } catch (error) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        toast.error('Your session has expired. Please sign in again.');
       } finally {
         setIsLoading(false);
       }
@@ -68,7 +59,6 @@ export const UserAuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []);
 
-  // Handle messages from the auth popup
   useEffect(() => {
     const handleAuthMessage = (event: MessageEvent) => {
       if (!event.data || !event.data.type) return;
@@ -87,7 +77,6 @@ export const UserAuthProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener('message', handleAuthMessage);
   }, []);
 
-  // Login function - opens Google auth popup
   const login = () => {
     const width = 600;
     const height = 700;
@@ -101,20 +90,18 @@ export const UserAuthProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  // Logout function
   const logout = async () => {
     const token = localStorage.getItem('accessToken');
     
     if (token) {
       try {
-        await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/logout`, {
-          method: 'POST',
+        await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/users/logout`, {}, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-      } catch {
-        // Continue with frontend logout even if API call fails
+      } catch (error) {
+        // Silent failure on logout errors
       }
     }
 
@@ -139,5 +126,4 @@ export const UserAuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Custom hook for using the context
 export const useUserAuth = () => useContext(UserAuthContext);

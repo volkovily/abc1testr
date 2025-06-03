@@ -52,7 +52,7 @@ const YouTubeSettings: React.FC<YouTubeSettingsProps> = ({
   const authInfo: AuthInfo | null = userInfo ? {
      name: userInfo.title,
      id: userInfo.id,
-     imageUrl: userInfo.thumbnailUrl,
+     imageUrl: userInfo.thumbnailUrl || undefined,
      profileUrl: `https://www.youtube.com/channel/${userInfo.id}`
   } : null;
 

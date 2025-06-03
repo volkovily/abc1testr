@@ -15,7 +15,6 @@ const VideoUploadForm = ({ onSubmit }: VideoUploadFormProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
 
-  // Restore selected file from context if available (for back button navigation)
   useEffect(() => {
     if (videoFile) {
       setSelectedFile(videoFile);
@@ -27,7 +26,6 @@ const VideoUploadForm = ({ onSubmit }: VideoUploadFormProps) => {
         URL.revokeObjectURL(url);
       };
     } else {
-      // Clear local state if context file is cleared (e.g., via reset)
       setSelectedFile(null);
       setVideoPreview('');
       setIsPreviewExpanded(false);

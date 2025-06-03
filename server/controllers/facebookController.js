@@ -51,16 +51,6 @@ class FacebookController extends BaseController {
     }
   };
 
-  logout = async (req, res) => {
-    try {
-      const userId = req.user.userId;
-      await this.service.clearTokens(userId);
-      res.status(200).json({ success: true, message: 'Successfully logged out from Facebook.' });
-    } catch (err) {
-      this.handleError(err, res, req.user.userId, 'Facebook logout');
-    }
-  };
-
   getPages = async (req, res) => {
     const userId = req.user.userId;
     try {
@@ -173,10 +163,8 @@ class FacebookController extends BaseController {
   };
 }
 
-// Create controller instance
 const facebookController = new FacebookController();
 
-// Export controller methods with authentication middleware
 module.exports = {
   getStatus: facebookController.protected(facebookController.getStatus),
   getUserInfo: facebookController.protected(facebookController.getUserInfo),

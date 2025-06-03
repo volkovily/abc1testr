@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 interface PlatformAuthConfig<TUserInfo> {
   statusUrl: string;
@@ -24,17 +25,25 @@ export function usePlatformAuth<TUserInfo>(config: PlatformAuthConfig<TUserInfo>
     setError(null);
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(config.statusUrl, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error(`Status check failed: ${res.status}`);
-      const data = await res.json();
-      setIsAuthenticated(data.isAuthenticated);
-      if (data.isAuthenticated) {
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await axios.get(config.statusUrl, { headers });
+      setIsAuthenticated(response.data.isAuthenticated);
+      
+      if (response.data.isAuthenticated) {
         await fetchUserInfo();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to check status');
+      let errorMessage = 'Failed to check status';
+      if (axios.isAxiosError(err)) {
+        errorMessage = err.response?.data?.error || err.message || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
@@ -44,25 +53,34 @@ export function usePlatformAuth<TUserInfo>(config: PlatformAuthConfig<TUserInfo>
   const fetchUserInfo = useCallback(async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(config.userInfoUrl, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error(`User fetch failed: ${res.status}`);
-      const data = await res.json();
-      setUserInfo(config.extractUserInfo(data));
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await axios.get(config.userInfoUrl, { headers });
+      setUserInfo(config.extractUserInfo(response.data));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch user');
+      let errorMessage = 'Failed to fetch user';
+      if (axios.isAxiosError(err)) {
+        errorMessage = err.response?.data?.error || err.message || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
       setUserInfo(null);
     }
   }, []);
 
   const logout = useCallback(async () => {
-    const token = localStorage.getItem('accessToken');
     try {
-      await fetch(config.logoutUrl, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const token = localStorage.getItem('accessToken');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      await axios.post(config.logoutUrl, {}, { headers });
       setIsAuthenticated(false);
       setUserInfo(null);
       toast.success(`Logged out from ${config.platformName}`);
@@ -77,16 +95,29 @@ export function usePlatformAuth<TUserInfo>(config: PlatformAuthConfig<TUserInfo>
     setError(null);
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await fetch(config.loginUrl, { headers: { 'Authorization': `Bearer ${token}` } });
-      if (!res.ok) throw new Error(`Auth init failed: ${res.status}`);
-      const { authUrl } = await res.json();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await axios.get(config.loginUrl, { headers });
+      const { authUrl } = response.data;
+      
       const width = 600, height = 700;
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2;
-      if (popupRef.current && !popupRef.current.closed) popupRef.current.close();
+      
+      if (popupRef.current && !popupRef.current.closed) {
+        popupRef.current.close();
+      }
+      
       popupRef.current = window.open(authUrl, `${config.platformName}Auth`, `width=${width},height=${height},top=${top},left=${left}`);
     } catch (err) {
-      toast.error(`Failed to initiate ${config.platformName} login`);
+      let errorMessage = `Failed to initiate ${config.platformName} login`;
+      if (axios.isAxiosError(err)) {
+        errorMessage = err.response?.data?.error || err.message || errorMessage;
+      }
+      toast.error(errorMessage);
     }
   }, []);
 

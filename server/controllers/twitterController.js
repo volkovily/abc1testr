@@ -4,12 +4,15 @@ const axios = require('axios');
 const FormData = require('form-data');
 
 const TWITTER_API = {
-  MEDIA_UPLOAD: 'https://api.twitter.com/2/media/upload',
+  MEDIA_UPLOAD_INITIALIZE: 'https://api.twitter.com/2/media/upload/initialize',
+  MEDIA_UPLOAD_APPEND: 'https://api.twitter.com/2/media/upload/{id}/append',
+  MEDIA_UPLOAD_FINALIZE: 'https://api.twitter.com/2/media/upload/{id}/finalize',
+  MEDIA_UPLOAD_STATUS: 'https://api.twitter.com/2/media/upload',
   TWEET: 'https://api.twitter.com/2/tweets',
   USER_INFO: 'https://api.twitter.com/2/users/me'
 };
 
-const CHUNK_SIZE = 2 * 1024 * 1024;
+const CHUNK_SIZE = 4 * 1024 * 1024;
 
 class TwitterController extends BaseController {
   constructor() {
@@ -50,26 +53,6 @@ class TwitterController extends BaseController {
     }
   };
 
-  logout = async (req, res) => {
-    try {
-      const userId = req.user.userId;
-      await this.service.clearTokens(userId);
-      res.status(200).json({ success: true, message: 'Successfully logged out from Twitter.' });
-    } catch (err) {
-      this.handleError(err, res, req.user.userId, 'Twitter logout');
-    }
-  };
-
-  getStatus = async (req, res) => {
-    try {
-      const userId = req.user.userId;
-      const status = await this.service.checkTokenStatus(userId);
-      res.json({ isAuthenticated: !!status.isAuthenticated });
-    } catch (error) {
-      this.handleError(error, res, req.user.userId, 'checking Twitter status');
-    }
-  };
-
   getUserInfo = async (req, res) => {
     try {
       const userId = req.user.userId;
@@ -85,67 +68,79 @@ class TwitterController extends BaseController {
   };
 
   async getTwitterAuth(userId) {
-    const tokens = await this.service.getStoredTokens(userId);
-    if (!tokens.accessToken) {
-      return { error: 'Not authenticated with Twitter' };
+    try {
+      const accessToken = await this.service.ensureValidToken(userId);
+      return { accessToken };
+    } catch (error) {
+      return { error: error.message || 'Not authenticated with Twitter' };
     }
-    return { accessToken: tokens.accessToken };
   }
 
   async uploadMediaToTwitter(file, accessToken) {
     try {
       const totalBytes = file.size;
       const mediaType = file.mimetype;
+      const isVideo = mediaType.startsWith('video/');
       
       const mediaCategory = mediaType.startsWith('image/') 
         ? 'tweet_image' 
         : 'tweet_video';
       
-      const initForm = new FormData();
-      initForm.append('command', 'INIT');
-      initForm.append('media_type', mediaType);
-      initForm.append('total_bytes', totalBytes.toString());
-      initForm.append('media_category', mediaCategory);
+      const initPayload = {
+        media_type: mediaType,
+        total_bytes: totalBytes,
+        media_category: mediaCategory
+      };
       
-      const initResp = await axios.post(TWITTER_API.MEDIA_UPLOAD, initForm, {
+      if (isVideo) {
+        initPayload.additional_owners = [];
+      }
+      
+      const initResp = await axios.post(TWITTER_API.MEDIA_UPLOAD_INITIALIZE, initPayload, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          ...initForm.getHeaders()
+          'Content-Type': 'application/json'
         }
+      }).catch(err => {
+        throw err;
       });
       
       const mediaId = initResp.data.data.id;
+      
+      const totalChunks = Math.ceil(totalBytes / CHUNK_SIZE);
       
       for (let i = 0; i < totalBytes; i += CHUNK_SIZE) {
         const chunk = file.buffer.slice(i, i + CHUNK_SIZE);
         const segmentIndex = Math.floor(i / CHUNK_SIZE);
         
         const appendForm = new FormData();
-        appendForm.append('command', 'APPEND');
-        appendForm.append('media_id', mediaId);
         appendForm.append('segment_index', segmentIndex);
         appendForm.append('media', chunk, { 
           filename: file.originalname, 
           contentType: mediaType 
         });
         
-        await axios.post(TWITTER_API.MEDIA_UPLOAD, appendForm, {
+        await axios.post(TWITTER_API.MEDIA_UPLOAD_APPEND.replace('{id}', mediaId), appendForm, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             ...appendForm.getHeaders()
           }
+        }).catch(err => {
+          throw err;
         });
       }
       
-      const finalizeForm = new FormData();
-      finalizeForm.append('command', 'FINALIZE');
-      finalizeForm.append('media_id', mediaId);
+      const finalizePayload = {
+        total_chunks: Math.ceil(totalBytes / CHUNK_SIZE)
+      };
       
-      const finalizeResp = await axios.post(TWITTER_API.MEDIA_UPLOAD, finalizeForm, {
+      const finalizeResp = await axios.post(TWITTER_API.MEDIA_UPLOAD_FINALIZE.replace('{id}', mediaId), finalizePayload, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          ...finalizeForm.getHeaders()
+          'Content-Type': 'application/json'
         }
+      }).catch(err => {
+        throw err;
       });
       
       let processingInfo = finalizeResp.data.data.processing_info;
@@ -159,13 +154,23 @@ class TwitterController extends BaseController {
       while (state && state !== 'succeeded' && state !== 'failed') {
         await new Promise(resolve => setTimeout(resolve, checkAfterSecs * 1000));
         
-        const statusResp = await axios.get(TWITTER_API.MEDIA_UPLOAD, {
-          params: { command: 'STATUS', media_id: mediaId },
-          headers: { Authorization: `Bearer ${accessToken}` }
+        const statusResp = await axios.get(TWITTER_API.MEDIA_UPLOAD_STATUS, {
+          params: {
+            media_id: mediaId,
+            command: 'STATUS'
+          },
+          headers: { 
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }).catch(err => {
+          throw err;
         });
         
         processingInfo = statusResp.data.data.processing_info;
-        if (!processingInfo) break;
+        if (!processingInfo) {
+          break;
+        }
         
         state = processingInfo.state;
         checkAfterSecs = processingInfo.check_after_secs || 1;
@@ -216,7 +221,6 @@ class TwitterController extends BaseController {
           const mediaId = await this.uploadMediaToTwitter(file, accessToken);
           mediaIds.push(mediaId);
         } catch (err) {
-          console.error('Twitter media upload error:', err);
           return res.status(500).json({
             success: false,
             error: 'Media upload failed',
@@ -231,7 +235,6 @@ class TwitterController extends BaseController {
           tweet: tweetResponse
         });
       } catch (err) {
-        console.error('Twitter post error:', err);
         return res.status(500).json({
           success: false,
           error: 'Tweet failed',
@@ -244,10 +247,8 @@ class TwitterController extends BaseController {
   };
 }
 
-// Create controller instance
 const twitterController = new TwitterController();
 
-// Export controller methods with authentication middleware
 module.exports = {
   getStatus: twitterController.protected(twitterController.getStatus),
   getUserInfo: twitterController.protected(twitterController.getUserInfo),

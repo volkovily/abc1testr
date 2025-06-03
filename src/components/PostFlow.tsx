@@ -18,7 +18,6 @@ const PostFlow: React.FC = () => {
   const [selectedPlatforms, setSelectedPlatforms] = useState<SelectedPlatform[]>([]);
   const { publishSingle, results } = usePostPublisher();
   const [activePlatform, setActivePlatform] = useState<string | null>(null);
-  // Handlers for selection and submission
   const handleSelect = (platformId: string, isAuthenticated?: boolean) => {
     const platform = postPlatforms.find(p => p.id === platformId);
     if (platform) {
@@ -39,14 +38,13 @@ const PostFlow: React.FC = () => {
           }
         ];
       });
-      setActivePlatform(prev => prev || platformId); // Set first selected as active
+      setActivePlatform(prev => prev || platformId);
     }
   };
   const handleDeselect = (platformId: string) => {
     setSelectedPlatforms(prev => prev.filter(p => p.id !== platformId));
     setActivePlatform(prev => (prev === platformId ? (selectedPlatforms.length > 1 ? selectedPlatforms.find(p => p.id !== platformId)?.id || null : null) : prev));
   };
-  // Only publish to the active platform
   const handlePostSubmit = (payload: any) => {
     if (activePlatform) {
       const platform = selectedPlatforms.find(p => p.id === activePlatform);
@@ -55,7 +53,6 @@ const PostFlow: React.FC = () => {
       }
     }
   };
-  // Always call this hook at top level
   const { isAuthenticated: isFacebookAuth, isLoading: isFacebookLoading, userInfo: facebookUserInfo, error: facebookError, logout: facebookLogout } = useFacebookAuth();
   const { isAuthenticated: isTwitterAuth, isLoading: isTwitterLoading, userInfo: twitterUserInfo, error: twitterError, logout: twitterLogout } = useTwitterAuth();
   const FacebookIcon = IconsByName['facebook'];
@@ -83,7 +80,6 @@ const PostFlow: React.FC = () => {
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-      {/* Header with back button */}
       <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 flex items-center">
         <button onClick={() => setStep('select')} className="mr-3 flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50">
           <ArrowLeft size={16} />
@@ -91,7 +87,6 @@ const PostFlow: React.FC = () => {
         <h2 className="text-sm font-medium text-gray-800">Configure Post Settings</h2>
       </div>
       <div className="p-4 space-y-4">
-        {/* Platform tabs - moved above account status */}
         <div className="overflow-x-auto border-b border-gray-200">
           <nav className="-mb-px flex space-x-2" aria-label="Tabs">
             {selectedPlatforms.map(platform => (
@@ -110,7 +105,6 @@ const PostFlow: React.FC = () => {
             ))}
           </nav>
         </div>
-        {/* Account status - only show for Facebook or Twitter */}
         {activePlatform === 'facebook' && (
           <AuthStatusDisplay
             platformName="Facebook"
@@ -133,11 +127,9 @@ const PostFlow: React.FC = () => {
             onLogout={twitterLogout}
           />
         )}
-        {/* Form content & upload status per platform */}
         <div className="min-h-[200px]">
           {activePlatform && (() => {
             const result = results[activePlatform];
-            // Show settings form only if not uploading/processing/success/error
             if (!result || result.status === 'pending') {
               if (activePlatform === 'facebook') {
                 return <FacebookPostForm onSubmit={handlePostSubmit} isSubmitting={false} />;
@@ -147,7 +139,6 @@ const PostFlow: React.FC = () => {
               }
               return null;
             }
-            // Show upload status if uploading/processing/success
             return (
               <React.Fragment>
                 <PlatformUploadStatus 

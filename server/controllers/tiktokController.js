@@ -84,20 +84,6 @@ class TikTokController extends BaseController {
     }
   };
 
-  logout = async (req, res) => {
-    const userId = req.user.userId;
-    if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated.' });
-    }
-    try {
-      await this.service.clearTokens(userId);
-      console.log(`Successfully cleared TikTok tokens from database for user ${userId}.`);
-      res.status(200).json({ success: true, message: 'Successfully logged out from TikTok.' });
-    } catch (err) {
-      this.handleError(err, res, userId, 'TikTok logout');
-    }
-  };
-
   getUserInfo = async (req, res) => {
     const userId = req.user.userId;
     try {
@@ -230,10 +216,8 @@ class TikTokController extends BaseController {
   };
 }
 
-// Create controller instance
 const tiktokController = new TikTokController();
 
-// Export controller methods with authentication middleware
 module.exports = {
   getStatus: tiktokController.protected(tiktokController.getStatus),
   getUserInfo: tiktokController.protected(tiktokController.getUserInfo),

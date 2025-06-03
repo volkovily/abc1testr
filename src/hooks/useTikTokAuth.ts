@@ -1,10 +1,10 @@
 import { usePlatformAuth } from './usePlatformAuth';
-import { ProcessedTikTokUserInfo } from '../services/tiktokApiService';
+import { TikTokUserInfo } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export function useTikTokAuth() {
-  return usePlatformAuth<ProcessedTikTokUserInfo>({
+  return usePlatformAuth<TikTokUserInfo>({
     statusUrl: `${API_BASE_URL}/api/tiktok/status`,
     userInfoUrl: `${API_BASE_URL}/api/tiktok/userinfo`,
     loginUrl: `${API_BASE_URL}/auth/tiktok`,

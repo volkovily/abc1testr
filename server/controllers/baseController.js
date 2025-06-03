@@ -30,10 +30,11 @@ class BaseController {
   getStatus = async (req, res) => {
     const userId = req.user.userId;
     try {
-      const status = await this.service.checkTokenStatus(userId);
-      res.json(status);
+      await this.service.ensureValidToken(userId);
+      return res.status(200).json({ isAuthenticated: true });
     } catch (error) {
-      this.handleError(error, res, userId, `checking status`, 500);
+      console.log(`Auth check failed for user ${userId}:`, error.message);
+      return res.status(200).json({ isAuthenticated: false });
     }
   };
 
@@ -44,6 +45,20 @@ class BaseController {
       res.json({ user: profile });
     } catch (error) {
       this.handleError(error, res, userId, `fetching user info`, 500);
+    }
+  };
+
+  logout = async (req, res) => {
+    const userId = req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated.' });
+    }
+    try {
+      await this.service.clearTokens(userId);
+      console.log(`Successfully cleared tokens from database for user ${userId}.`);
+      res.status(200).json({ success: true, message: 'Successfully logged out.' });
+    } catch (err) {
+      this.handleError(err, res, userId, 'logout');
     }
   };
 
